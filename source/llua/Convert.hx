@@ -9,7 +9,13 @@ import llua.State;
 import llua.Lua;
 
 class Convert {
-	public static function toLua(l:State, val:Dynamic):Void {
+	/**
+	 * Control whether to show traces for unsupported type conversions
+	 * Set to false to silence "Couldn't convert X to Lua" warnings
+	 */
+	public static var enableUnsupportedTraces:Bool = false;
+	
+	public static function toLua(l:State, val:Dynamic):Bool {
 		switch (Type.typeof(val)) {
 			case TNull:
 				Lua.pushnil(l);
@@ -42,8 +48,10 @@ class Convert {
 					Lua.settable(l, -3);
 				}
 			default:
-				Sys.println('Couldn\'t convert "${Type.typeof(val)}" to Lua.');
+				if(enableUnsupportedTraces) trace('Haxe value of type ${Type.typeof(val)} not supported for Lua conversion');
+				return false;
 		}
+		return true;
 	}
 
 	public static function fromLua(l:State, idx:Int):Dynamic {
