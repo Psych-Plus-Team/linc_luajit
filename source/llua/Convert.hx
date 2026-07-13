@@ -74,7 +74,7 @@ class Convert {
 							array = false;
 						else {
 							var index = Lua.tonumber(l, -2);
-							if (index < 0 || Std.int(index) != index)
+							if (index < 1 || Std.int(index) != index)
 								array = false;
 						}
 					}
