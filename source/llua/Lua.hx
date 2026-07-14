@@ -211,12 +211,26 @@ extern class Lua {
 class Lua_helper {
 	public static var sendErrorsToLua:Bool = true;
 	public static var callbacks:Map<String, Dynamic> = new Map();
+	public static var callbacksByState:Map<String, Dynamic> = new Map();
 
 	@:noCompletion
 	private static var callbacks_function:cpp.Callable<State->String->Int> = null;
 
+	static inline function callbackKey(L:cpp.RawPointer<Lua_State>, fname:String):String {
+		return Std.string(cast L) + ':' + fname;
+	}
+
+	public static inline function get_callback(L:cpp.RawPointer<Lua_State>, fname:String):Dynamic {
+		var key:String = callbackKey(L, fname);
+		if (callbacksByState.exists(key))
+			return callbacksByState.get(key);
+		return callbacks.get(fname);
+	}
+
 	public static function add_callback(L:cpp.RawPointer<Lua_State>, fname:String, f:Dynamic):Bool {
-		callbacks.set(fname, f);
+		callbacksByState.set(callbackKey(L, fname), f);
+		if (f != null || !callbacks.exists(fname))
+			callbacks.set(fname, f);
 		hxluajit.Lua.pushstring(L, fname);
 		hxluajit.Lua.pushcclosure(L, cpp.Callable.fromStaticFunction(callback_handler), 1);
 		hxluajit.Lua.setglobal(L, fname);
@@ -227,6 +241,7 @@ class Lua_helper {
 		if (L == null)
 			return;
 
+		callbacksByState.remove(callbackKey(L, key));
 		callbacks.remove(key);
 
 		hxluajit.Lua.pushnil(L);
@@ -248,8 +263,9 @@ class Lua_helper {
 
 			final name:String = hxluajit.Lua.tostring(L, hxluajit.Lua.upvalueindex(1));
 
-			if (callbacks.exists(name)) {
-				var ret:Dynamic = Reflect.callMethod(null, callbacks.get(name), args);
+			var callback:Dynamic = get_callback(L, name);
+			if (callback != null) {
+				var ret:Dynamic = Reflect.callMethod(null, callback, args);
 
 				if (ret != null) {
 					Convert.toLua(L, ret);

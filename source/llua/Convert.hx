@@ -49,6 +49,7 @@ class Convert {
 				}
 			default:
 				if(enableUnsupportedTraces) trace('Haxe value of type ${Type.typeof(val)} not supported for Lua conversion');
+				Lua.pushnil(l);
 				return false;
 		}
 		return true;
